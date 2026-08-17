@@ -1,5 +1,5 @@
 {
-    "$schema": "https://raw.githubusercontent.com/JoshuaBarrass/opendeck-plugins/main/schema.json",
+    "$schema": "https://raw.githubusercontent.com/BarrassDev/opendeck-plugins/main/schema.json",
     "version": 1,
     "plugins": [
         {
@@ -9,8 +9,8 @@
             "author": "OpenDeck Team",
             "version": "1.0.0",
             "tags": ["launch", "apps", "windows", "files"],
-            "repo": "https://github.com/JoshuaBarrass/openDeck",
-            "cloneUrl": "https://github.com/JoshuaBarrass/openDeck.git",
+            "repo": "https://github.com/BarrassDev/openDeck",
+            "cloneUrl": "https://github.com/BarrassDev/openDeck.git",
             "subdirectory": "modules/app-launcher",
             "homepage": "https://github.com/JoshuaBarrass/openDeck",
             "license": "MIT",
@@ -23,10 +23,10 @@
             "author": "OpenDeck Team",
             "version": "0.2.0",
             "tags": ["obs", "streaming", "video"],
-            "repo": "https://github.com/JoshuaBarrass/openDeck",
-            "cloneUrl": "https://github.com/JoshuaBarrass/openDeck.git",
+            "repo": "https://github.com/BarrassDev/openDeck",
+            "cloneUrl": "https://github.com/BarrassDev/openDeck.git",
             "subdirectory": "modules/obs-control",
-            "homepage": "https://github.com/JoshuaBarrass/openDeck",
+            "homepage": "https://github.com/BarrassDev/openDeck",
             "license": "MIT",
             "bundled": true
         },
@@ -37,10 +37,10 @@
             "author": "OpenDeck Team",
             "version": "0.1.0",
             "tags": ["http", "webhook", "api", "automation"],
-            "repo": "https://github.com/JoshuaBarrass/openDeck",
-            "cloneUrl": "https://github.com/JoshuaBarrass/openDeck.git",
+            "repo": "https://github.com/BarrassDev/openDeck",
+            "cloneUrl": "https://github.com/BarrassDev/openDeck.git",
             "subdirectory": "modules/http-actions",
-            "homepage": "https://github.com/JoshuaBarrass/openDeck",
+            "homepage": "https://github.com/BarrassDev/openDeck",
             "license": "MIT",
             "bundled": true
         },
@@ -51,10 +51,10 @@
             "author": "OpenDeck Team",
             "version": "0.1.0",
             "tags": ["keyboard", "macro", "hotkey", "windows"],
-            "repo": "https://github.com/JoshuaBarrass/openDeck",
-            "cloneUrl": "https://github.com/JoshuaBarrass/openDeck.git",
+            "repo": "https://github.com/BarrassDev/openDeck",
+            "cloneUrl": "https://github.com/BarrassDev/openDeck.git",
             "subdirectory": "modules/macro",
-            "homepage": "https://github.com/JoshuaBarrass/openDeck",
+            "homepage": "https://github.com/BarrassDev/openDeck",
             "license": "MIT",
             "bundled": true
         },
@@ -65,10 +65,10 @@
             "author": "OpenDeck Team",
             "version": "0.1.0",
             "tags": ["media", "audio", "windows"],
-            "repo": "https://github.com/JoshuaBarrass/openDeck",
-            "cloneUrl": "https://github.com/JoshuaBarrass/openDeck.git",
+            "repo": "https://github.com/BarrassDev/openDeck",
+            "cloneUrl": "https://github.com/BarrassDev/openDeck.git",
             "subdirectory": "modules/media-controls",
-            "homepage": "https://github.com/JoshuaBarrass/openDeck",
+            "homepage": "https://github.com/BarrassDev/openDeck",
             "license": "MIT",
             "bundled": true
         }
