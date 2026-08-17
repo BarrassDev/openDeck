@@ -14,7 +14,7 @@ import { variableStore } from "./variable-store"
 import { configStore } from "./config-store"
 import { moduleRegistry, loadModules } from "./module-loader"
 
-const REGISTRY_URL = "https://raw.githubusercontent.com/JoshuaBarrass/opendeck-plugins/main/registry.json"
+const REGISTRY_URL = "https://raw.githubusercontent.com/BarrassDev/opendeck-plugins/main/registry.json"
 
 function fetchJSON(url: string): Promise<unknown> {
     return new Promise((resolve, reject) => {
