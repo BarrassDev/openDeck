@@ -1,67 +1,74 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from "react"
-import type { DeckPage, DeckButton, DeckVariable } from "../../shared/types"
-import { useSocket } from "./useSocket"
+import {
+    DEFAULT_COLUMNS,
+    DEFAULT_ROWS,
+    type DeckPage,
+    type DeckButton,
+    type DeckVariable,
+} from "../../shared/types"
+import { migrateVariables } from "../../shared/migrate"
+import { useSocket, isElectron } from "./useSocket"
 
 const STORAGE_KEY = "opendeck-config"
 const VARS_STORAGE_KEY = "opendeck-variables"
 const DISPLAY_IMAGE_KEY = "opendeck-display-image"
 
-const defaultPages: DeckPage[] = [
-    {
-        name: "Main",
-        grid: [
-            { id: "1", label: "Start Stream", icon: "🎬", action: "obs.startStreaming" },
-            { id: "2", label: "Stop Stream", icon: "⏹️", action: "obs.stopStreaming" },
-            { id: "3", label: "Mute Mic", icon: "🎙️", action: "obs.toggleMute" },
-            { id: "4", label: "Scene 1", icon: "1️⃣", action: "obs.switchScene" },
-            { id: "5", label: "Scene 2", icon: "2️⃣", action: "obs.switchScene" },
-            { id: "6", label: "Webhook", icon: "🌐", action: "http.post" },
-            { id: "7", label: "", icon: "", action: "" },
-            { id: "8", label: "", icon: "", action: "" },
-            { id: "9", label: "", icon: "", action: "" },
-            { id: "10", label: "", icon: "", action: "" },
-            { id: "11", label: "", icon: "", action: "" },
-            { id: "12", label: "", icon: "", action: "" },
-            { id: "13", label: "", icon: "", action: "" },
-            { id: "14", label: "", icon: "", action: "" },
-            { id: "15", label: "", icon: "", action: "" },
-        ],
-    },
-    {
-        name: "Media",
-        grid: [
-            { id: "16", label: "Play/Pause", icon: "⏯️", action: "media.playPause" },
-            { id: "17", label: "Next", icon: "⏭️", action: "media.next" },
-            { id: "18", label: "Previous", icon: "⏮️", action: "media.previous" },
-            { id: "19", label: "Vol Up", icon: "🔊", action: "media.volumeUp" },
-            { id: "20", label: "Vol Down", icon: "🔉", action: "media.volumeDown" },
-            { id: "21", label: "Mute", icon: "🔇", action: "media.mute" },
-            { id: "22", label: "", icon: "", action: "" },
-            { id: "23", label: "", icon: "", action: "" },
-            { id: "24", label: "", icon: "", action: "" },
-            { id: "25", label: "", icon: "", action: "" },
-            { id: "26", label: "", icon: "", action: "" },
-            { id: "27", label: "", icon: "", action: "" },
-            { id: "28", label: "", icon: "", action: "" },
-            { id: "29", label: "", icon: "", action: "" },
-            { id: "30", label: "", icon: "", action: "" },
-        ],
-    },
-]
+export function emptyButton(id: string): DeckButton {
+    return { id, label: "", icon: "", action: "" }
+}
 
-function loadConfig(): DeckPage[] {
+let nextId = Date.now() % 1_000_000
+export function generateId(): string {
+    return String(nextId++)
+}
+
+function makePage(name: string, columns = DEFAULT_COLUMNS, rows = DEFAULT_ROWS): DeckPage {
+    return {
+        name,
+        columns,
+        rows,
+        grid: Array.from({ length: columns * rows }, () => emptyButton(generateId())),
+    }
+}
+
+const defaultPages: DeckPage[] = (() => {
+    const main = makePage("Main")
+    main.grid[0] = { ...main.grid[0], label: "Stream", icon: "🎬", action: "obs.toggleStreaming", face: { states: [{ when: { key: "obs-control.streaming", truthy: true }, label: "LIVE", color: "#b3261e" }] } }
+    main.grid[1] = { ...main.grid[1], label: "Record", icon: "⏺️", action: "obs.toggleRecording", face: { states: [{ when: { key: "obs-control.recording", truthy: true }, label: "REC", color: "#b3261e" }] } }
+    main.grid[2] = { ...main.grid[2], label: "Mic", icon: "🎙️", action: "wavelink.toggleInputMute" }
+    main.grid[3] = { ...main.grid[3], label: "Scene 1", icon: "1️⃣", action: "obs.switchScene" }
+    main.grid[4] = { ...main.grid[4], label: "Scene 2", icon: "2️⃣", action: "obs.switchScene" }
+    const media = makePage("Media")
+    media.grid[0] = { ...media.grid[0], label: "Play/Pause", icon: "⏯️", action: "media.playPause" }
+    media.grid[1] = { ...media.grid[1], label: "Next", icon: "⏭️", action: "media.next" }
+    media.grid[2] = { ...media.grid[2], label: "Previous", icon: "⏮️", action: "media.previous" }
+    media.grid[3] = { ...media.grid[3], label: "Vol Up", icon: "🔊", action: "media.volumeUp" }
+    media.grid[4] = { ...media.grid[4], label: "Vol Down", icon: "🔉", action: "media.volumeDown" }
+    media.grid[5] = { ...media.grid[5], label: "Mute", icon: "🔇", action: "media.mute" }
+    return [main, media]
+})()
+
+/** Guarantee every page has a full grid of slots for its columns × rows */
+function normalizePages(pages: DeckPage[]): DeckPage[] {
+    return pages.map(page => {
+        const columns = page.columns || DEFAULT_COLUMNS
+        const rows = page.rows || DEFAULT_ROWS
+        const total = columns * rows
+        const grid = (page.grid || []).slice(0, Math.max(total, page.grid?.length || 0))
+        while (grid.length < total) grid.push(emptyButton(generateId()))
+        return { ...page, columns, rows, grid }
+    })
+}
+
+function loadPages(): DeckPage[] {
     try {
         const raw = localStorage.getItem(STORAGE_KEY)
         if (raw) {
             const parsed = JSON.parse(raw)
-            if (Array.isArray(parsed) && parsed.length > 0) return parsed
+            if (Array.isArray(parsed) && parsed.length > 0) return normalizePages(parsed)
         }
     } catch { /* use defaults */ }
     return defaultPages
-}
-
-function saveConfig(pages: DeckPage[]) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(pages))
 }
 
 function loadVariables(): DeckVariable[] {
@@ -69,204 +76,249 @@ function loadVariables(): DeckVariable[] {
         const raw = localStorage.getItem(VARS_STORAGE_KEY)
         if (raw) {
             const parsed = JSON.parse(raw)
-            if (Array.isArray(parsed)) return parsed
+            if (Array.isArray(parsed)) return migrateVariables(parsed)
         }
     } catch { /* use defaults */ }
     return []
 }
 
-function saveVariables(vars: DeckVariable[]) {
-    localStorage.setItem(VARS_STORAGE_KEY, JSON.stringify(vars))
-}
-
-let nextId = 100
-
-function generateId(): string {
-    return String(nextId++)
+function persist(key: string, value: unknown) {
+    try { localStorage.setItem(key, typeof value === "string" ? value : JSON.stringify(value)) } catch { /* quota */ }
 }
 
 interface DeckConfigContextValue {
     pages: DeckPage[]
     currentPageIndex: number
     setCurrentPageIndex: (i: number) => void
+
+    // Buttons
     updateButton: (pageIndex: number, buttonIndex: number, updates: Partial<DeckButton>) => void
-    addButton: (pageIndex: number) => void
-    removeButton: (pageIndex: number, buttonIndex: number) => void
-    moveButton: (pageIndex: number, fromIndex: number, toIndex: number) => void
+    setButton: (pageIndex: number, buttonIndex: number, button: DeckButton) => void
+    clearButton: (pageIndex: number, buttonIndex: number) => void
+    swapButtons: (pageIndex: number, fromIndex: number, toIndex: number) => void
+    duplicateButton: (pageIndex: number, fromIndex: number) => number | null
     toggleButton: (pageIndex: number, buttonIndex: number) => void
+    clipboard: DeckButton | null
+    copyButton: (button: DeckButton) => void
+    pasteButton: (pageIndex: number, buttonIndex: number) => void
+
+    // Pages
     addPage: (name: string) => void
     removePage: (pageIndex: number) => void
     renamePage: (pageIndex: number, name: string) => void
+    movePage: (fromIndex: number, toIndex: number) => void
+    setPageGrid: (pageIndex: number, columns: number, rows: number) => void
+
+    // Variables (module-scoped)
     variables: DeckVariable[]
-    addVariable: (key: string, value: string, description?: string) => void
+    addVariable: (module: string, key: string, value: string, description?: string) => void
     updateVariable: (index: number, updates: Partial<DeckVariable>) => void
     removeVariable: (index: number) => void
+    setModuleVariable: (module: string, key: string, value: string) => void
+    getModuleVariable: (module: string, key: string) => string | undefined
+
     displayImage: string
     setDisplayImage: (img: string) => void
 }
 
 const DeckConfigContext = createContext<DeckConfigContextValue>(null!)
 
-const isElectron = navigator.userAgent.includes("Electron")
-
 export function DeckConfigProvider({ children }: { children: ReactNode }) {
-    const [pages, setPages] = useState<DeckPage[]>(loadConfig)
+    const [pages, setPages] = useState<DeckPage[]>(loadPages)
     const [currentPageIndex, setCurrentPageIndex] = useState(0)
     const [variables, setVariables] = useState<DeckVariable[]>(loadVariables)
     const [displayImage, setDisplayImageState] = useState<string>(() => {
         try { return localStorage.getItem(DISPLAY_IMAGE_KEY) || "" } catch { return "" }
     })
-    const { send, lastMessage } = useSocket()
-    const serverUpdateCount = useRef(0)
-    const initialLoad = useRef(true)
+    const [clipboard, setClipboard] = useState<DeckButton | null>(null)
+    const { send, subscribe, connected } = useSocket()
 
-    // Listen for config.sync from the server (sent on connect or from other clients)
+    // Set while a config.sync from the server is being applied, so the persist
+    // effect below does not echo it straight back. Cleared by that effect.
+    const applyingRemote = useRef(false)
+    // Do not push anything until the server has told us what it has
+    const hydrated = useRef(false)
+    // Latest local values, for seeding a server that has no config yet
+    const latest = useRef({ pages, variables, displayImage })
+    latest.current = { pages, variables, displayImage }
+
     useEffect(() => {
-        if (
-            lastMessage?.type === "config.sync" &&
-            lastMessage.payload
-        ) {
-            const p = lastMessage.payload as any
-            let updates = 0
-            if (Array.isArray(p.pages) && p.pages.length > 0) {
-                setPages(p.pages)
-                saveConfig(p.pages)
-                updates++
-            }
-            if (Array.isArray(p.variables)) {
-                setVariables(p.variables)
-                saveVariables(p.variables)
-                updates++
-            }
-            if (typeof p.displayImage === "string") {
-                setDisplayImageState(p.displayImage)
-                try { localStorage.setItem(DISPLAY_IMAGE_KEY, p.displayImage) } catch { /* ignore */ }
-            }
-            serverUpdateCount.current += updates
-        }
-    }, [lastMessage])
+        return subscribe(message => {
+            if (message.type !== "config.sync" || !message.payload) return
+            const p = message.payload as { pages?: DeckPage[]; variables?: DeckVariable[]; displayImage?: string }
+            const serverHasPages = Array.isArray(p.pages) && p.pages.length > 0
+            const serverHasConfig = serverHasPages
+                || (Array.isArray(p.variables) && p.variables.length > 0)
+                || (typeof p.displayImage === "string" && p.displayImage !== "")
+            const firstSync = !hydrated.current
+            hydrated.current = true
 
-    // Push full config to server — only from Electron (PC) app, only on user-initiated changes
-    const sendConfigToServer = useCallback((p: DeckPage[], v: DeckVariable[], img: string) => {
-        if (!isElectron) return
-        if (serverUpdateCount.current > 0) {
-            serverUpdateCount.current--
-            return
-        }
-        send("config.update", undefined, {
-            pages: p as any,
-            variables: v as any,
-            displayImage: img,
+            if (!serverHasConfig) {
+                // Fresh server: keep local config and seed the server with it
+                if (firstSync && isElectron) {
+                    const l = latest.current
+                    send("config.update", undefined, {
+                        pages: l.pages as unknown as Record<string, unknown>[],
+                        variables: l.variables as unknown as Record<string, unknown>[],
+                        displayImage: l.displayImage,
+                    })
+                }
+                return
+            }
+
+            applyingRemote.current = true
+            if (serverHasPages) setPages(normalizePages(p.pages!))
+            if (Array.isArray(p.variables)) setVariables(migrateVariables(p.variables))
+            if (typeof p.displayImage === "string") setDisplayImageState(p.displayImage)
+            // Safety net in case nothing actually changed and the effect never runs
+            setTimeout(() => { applyingRemote.current = false }, 250)
         })
-    }, [send])
+    }, [subscribe, send])
 
+    // Persist locally and push to the server on user-initiated changes
     useEffect(() => {
-        if (initialLoad.current) {
-            initialLoad.current = false
+        persist(STORAGE_KEY, pages)
+        persist(VARS_STORAGE_KEY, variables)
+        persist(DISPLAY_IMAGE_KEY, displayImage)
+        if (applyingRemote.current) {
+            applyingRemote.current = false
             return
         }
-        saveConfig(pages)
-        sendConfigToServer(pages, variables, displayImage)
-    }, [pages])
+        if (!isElectron || !hydrated.current || !connected) return
+        send("config.update", undefined, {
+            pages: pages as unknown as Record<string, unknown>[],
+            variables: variables as unknown as Record<string, unknown>[],
+            displayImage,
+        })
+    }, [pages, variables, displayImage, send, connected])
 
-    useEffect(() => {
-        saveVariables(variables)
-        sendConfigToServer(pages, variables, displayImage)
-    }, [variables])
+    // ---- buttons ----
+    const editPage = useCallback((pageIndex: number, fn: (page: DeckPage) => DeckPage) => {
+        setPages(prev => prev.map((p, i) => (i === pageIndex ? fn(p) : p)))
+    }, [])
 
     const updateButton = useCallback((pageIndex: number, buttonIndex: number, updates: Partial<DeckButton>) => {
-        setPages(prev => {
-            const next = prev.map((p, pi) => {
-                if (pi !== pageIndex) return p
-                return {
-                    ...p,
-                    grid: p.grid.map((b, bi) => bi === buttonIndex ? { ...b, ...updates } : b),
-                }
-            })
-            return next
+        editPage(pageIndex, page => ({
+            ...page,
+            grid: page.grid.map((b, bi) => (bi === buttonIndex ? { ...b, ...updates } : b)),
+        }))
+    }, [editPage])
+
+    const setButton = useCallback((pageIndex: number, buttonIndex: number, button: DeckButton) => {
+        editPage(pageIndex, page => {
+            const grid = page.grid.slice()
+            while (grid.length <= buttonIndex) grid.push(emptyButton(generateId()))
+            grid[buttonIndex] = { ...button, id: grid[buttonIndex].id }
+            return { ...page, grid }
         })
-    }, [])
+    }, [editPage])
 
-    const addButton = useCallback((pageIndex: number) => {
-        setPages(prev => prev.map((p, pi) => {
-            if (pi !== pageIndex) return p
-            return {
-                ...p,
-                grid: [...p.grid, { id: generateId(), label: "", icon: "", action: "" }],
-            }
+    const clearButton = useCallback((pageIndex: number, buttonIndex: number) => {
+        editPage(pageIndex, page => ({
+            ...page,
+            grid: page.grid.map((b, bi) => (bi === buttonIndex ? emptyButton(b.id) : b)),
         }))
-    }, [])
+    }, [editPage])
 
-    const removeButton = useCallback((pageIndex: number, buttonIndex: number) => {
-        setPages(prev => prev.map((p, pi) => {
-            if (pi !== pageIndex) return p
-            return { ...p, grid: p.grid.filter((_, bi) => bi !== buttonIndex) }
-        }))
-    }, [])
+    const swapButtons = useCallback((pageIndex: number, fromIndex: number, toIndex: number) => {
+        if (fromIndex === toIndex) return
+        editPage(pageIndex, page => {
+            const grid = page.grid.slice()
+            const max = Math.max(fromIndex, toIndex)
+            while (grid.length <= max) grid.push(emptyButton(generateId()))
+            const a = grid[fromIndex]
+            const b = grid[toIndex]
+            // Keep ids attached to slots so polled face values stay with the slot
+            grid[fromIndex] = { ...b, id: a.id }
+            grid[toIndex] = { ...a, id: b.id }
+            return { ...page, grid }
+        })
+    }, [editPage])
 
-    const moveButton = useCallback((pageIndex: number, fromIndex: number, toIndex: number) => {
-        setPages(prev => prev.map((p, pi) => {
-            if (pi !== pageIndex) return p
-            const grid = [...p.grid]
-            const [moved] = grid.splice(fromIndex, 1)
-            grid.splice(toIndex, 0, moved)
-            return { ...p, grid }
-        }))
-    }, [])
+    const duplicateButton = useCallback((pageIndex: number, fromIndex: number): number | null => {
+        const page = pages[pageIndex]
+        if (!page) return null
+        const source = page.grid[fromIndex]
+        if (!source) return null
+        const target = page.grid.findIndex((b, i) => i !== fromIndex && !b.action && !b.label && !b.icon)
+        if (target === -1) return null
+        setButton(pageIndex, target, { ...source })
+        return target
+    }, [pages, setButton])
 
     const toggleButton = useCallback((pageIndex: number, buttonIndex: number) => {
-        setPages(prev => prev.map((p, pi) => {
-            if (pi !== pageIndex) return p
-            return {
-                ...p,
-                grid: p.grid.map((b, bi) => {
-                    if (bi !== buttonIndex) return b
-                    return { ...b, disabled: !((b as any).disabled) }
-                }),
-            }
+        editPage(pageIndex, page => ({
+            ...page,
+            grid: page.grid.map((b, bi) => (bi === buttonIndex ? { ...b, disabled: !b.disabled } : b)),
         }))
+    }, [editPage])
+
+    const copyButton = useCallback((button: DeckButton) => {
+        setClipboard(JSON.parse(JSON.stringify(button)))
     }, [])
 
+    const pasteButton = useCallback((pageIndex: number, buttonIndex: number) => {
+        if (!clipboard) return
+        setButton(pageIndex, buttonIndex, { ...clipboard })
+    }, [clipboard, setButton])
+
+    // ---- pages ----
     const addPage = useCallback((name: string) => {
-        const grid: DeckButton[] = Array.from({ length: 15 }, (_, i) => ({
-            id: generateId(),
-            label: "",
-            icon: "",
-            action: "",
-        }))
-        setPages(prev => [...prev, { name, grid }])
+        setPages(prev => [...prev, makePage(name)])
     }, [])
 
     const removePage = useCallback((pageIndex: number) => {
-        setPages(prev => {
-            if (prev.length <= 1) return prev
-            const next = prev.filter((_, i) => i !== pageIndex)
-            return next
-        })
-        setCurrentPageIndex(prev => Math.min(prev, pages.length - 2))
+        setPages(prev => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== pageIndex)))
+        setCurrentPageIndex(prev => Math.max(0, Math.min(prev, pages.length - 2)))
     }, [pages.length])
 
     const renamePage = useCallback((pageIndex: number, name: string) => {
-        setPages(prev => prev.map((p, i) => i === pageIndex ? { ...p, name } : p))
+        editPage(pageIndex, page => ({ ...page, name }))
+    }, [editPage])
+
+    const movePage = useCallback((fromIndex: number, toIndex: number) => {
+        setPages(prev => {
+            if (toIndex < 0 || toIndex >= prev.length || fromIndex === toIndex) return prev
+            const next = prev.slice()
+            const [moved] = next.splice(fromIndex, 1)
+            next.splice(toIndex, 0, moved)
+            return next
+        })
+        setCurrentPageIndex(toIndex)
     }, [])
 
-    const addVariable = useCallback((key: string, value: string, description?: string) => {
-        setVariables(prev => [...prev, { key, value, description }])
+    const setPageGrid = useCallback((pageIndex: number, columns: number, rows: number) => {
+        editPage(pageIndex, page => normalizePages([{ ...page, columns, rows }])[0])
+    }, [editPage])
+
+    // ---- variables ----
+    const addVariable = useCallback((module: string, key: string, value: string, description?: string) => {
+        setVariables(prev => [...prev, { module, key, value, description }])
     }, [])
 
     const updateVariable = useCallback((index: number, updates: Partial<DeckVariable>) => {
-        setVariables(prev => prev.map((v, i) => i === index ? { ...v, ...updates } : v))
+        setVariables(prev => prev.map((v, i) => (i === index ? { ...v, ...updates } : v)))
     }, [])
 
     const removeVariable = useCallback((index: number) => {
         setVariables(prev => prev.filter((_, i) => i !== index))
     }, [])
 
+    const setModuleVariable = useCallback((module: string, key: string, value: string) => {
+        setVariables(prev => {
+            const idx = prev.findIndex(v => v.module === module && v.key === key)
+            if (idx === -1) return [...prev, { module, key, value }]
+            return prev.map((v, i) => (i === idx ? { ...v, value } : v))
+        })
+    }, [])
+
+    const getModuleVariable = useCallback((module: string, key: string) => {
+        return variables.find(v => v.module === module && v.key === key)?.value
+    }, [variables])
+
     const setDisplayImage = useCallback((img: string) => {
         setDisplayImageState(img)
-        try { localStorage.setItem(DISPLAY_IMAGE_KEY, img) } catch { /* ignore */ }
-        sendConfigToServer(pages, variables, img)
-    }, [pages, variables, sendConfigToServer])
+    }, [])
 
     return (
         <DeckConfigContext.Provider value={{
@@ -274,17 +326,25 @@ export function DeckConfigProvider({ children }: { children: ReactNode }) {
             currentPageIndex,
             setCurrentPageIndex,
             updateButton,
-            addButton,
-            removeButton,
-            moveButton,
+            setButton,
+            clearButton,
+            swapButtons,
+            duplicateButton,
             toggleButton,
+            clipboard,
+            copyButton,
+            pasteButton,
             addPage,
             removePage,
             renamePage,
+            movePage,
+            setPageGrid,
             variables,
             addVariable,
             updateVariable,
             removeVariable,
+            setModuleVariable,
+            getModuleVariable,
             displayImage,
             setDisplayImage,
         }}>

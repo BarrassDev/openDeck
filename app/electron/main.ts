@@ -1,7 +1,8 @@
 import { app, BrowserWindow, ipcMain, dialog } from "electron"
 import path from "path"
 import { startServer } from "./server"
-import { loadModules } from "./module-loader"
+import { loadModules, moduleRegistry } from "./module-loader"
+import { registerClaudeLinkIpc } from "./claude-link"
 
 let mainWindow: BrowserWindow | null = null
 
@@ -49,6 +50,8 @@ ipcMain.handle("dialog:pickFile", async (_event, options: {
     return result.canceled ? null : result.filePaths[0]
 })
 
+registerClaudeLinkIpc()
+
 app.whenReady().then(async () => {
     // Load integration modules
     await loadModules()
@@ -60,6 +63,15 @@ app.whenReady().then(async () => {
     await createWindow()
 
     console.log(`OpenDeck running — control surface at http://localhost:${PORT}`)
+})
+
+let disposing = false
+app.on("before-quit", (event) => {
+    if (disposing) return
+    disposing = true
+    event.preventDefault()
+    const timeout = new Promise<void>(resolve => setTimeout(resolve, 3000))
+    Promise.race([moduleRegistry.disposeAll(), timeout]).finally(() => app.quit())
 })
 
 app.on("window-all-closed", () => {

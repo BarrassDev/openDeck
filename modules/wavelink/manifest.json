@@ -1,0 +1,446 @@
+{
+    "name": "wavelink",
+    "version": "1.1.0",
+    "apiVersion": 2,
+    "icon": "🎚️",
+    "description": "Elgato Wave Link 2 and 3 - mute and level control for microphones, outputs, channels and mixes with live state",
+    "config": {
+        "port": {
+            "type": "number",
+            "description": "WebSocket port override (auto-detected: 1824 for Wave Link 2, ws-info.json or 1884-1893 for Wave Link 3)",
+            "placeholder": "1884",
+            "min": 1,
+            "max": 65535
+        }
+    },
+    "stateKeys": {
+        "connected": "true while connected to Wave Link",
+        "mainOutput": "name of the current main output",
+        "input.<name>.muted": "microphone mute state",
+        "input.<name>.gain": "microphone gain (0–100)",
+        "input.<name>.micPcMix": "mic/PC mix balance (0–100)",
+        "input.<name>.effect.<effect>": "effect enabled state",
+        "output.<name>.muted": "output mute state",
+        "output.<name>.level": "output level (0–100)",
+        "channel.<name>.muted": "channel mute state (overall)",
+        "channel.<name>.level": "channel level (0–100)",
+        "channel.<name>.image": "channel icon as an image data URI",
+        "channel.<name>.mix.<mix>.muted": "channel mute state in a specific mix",
+        "channel.<name>.mix.<mix>.level": "channel level in a specific mix (0–100)",
+        "mix.<name>.muted": "mix mute state",
+        "mix.<name>.level": "mix level (0–100)",
+        "version": "detected Wave Link major version (2 or 3)",
+        "monitorMix": "mix currently sent to the headphones (Wave Link 2: Monitor or Stream)",
+        "channel.<name>.color": "channel colour as set in Wave Link (Wave Link 2)",
+        "channel.<name>.effectsBypassed.<mix>": "true when the channel effects are bypassed in that mix (Wave Link 2)"
+    },
+    "actions": [
+        "wavelink.reconnect",
+        "wavelink.toggleInputMute",
+        "wavelink.setInputMute",
+        "wavelink.setInputGain",
+        "wavelink.adjustInputGain",
+        "wavelink.setMicPcMix",
+        "wavelink.toggleInputEffect",
+        "wavelink.toggleOutputMute",
+        "wavelink.setOutputMute",
+        "wavelink.setOutputLevel",
+        "wavelink.adjustOutputLevel",
+        "wavelink.setMainOutput",
+        "wavelink.toggleChannelMute",
+        "wavelink.setChannelMute",
+        "wavelink.setChannelLevel",
+        "wavelink.adjustChannelLevel",
+        "wavelink.toggleChannelEffect",
+        "wavelink.toggleMixMute",
+        "wavelink.setMixMute",
+        "wavelink.setMixLevel",
+        "wavelink.adjustMixLevel",
+        "wavelink.toggleChannelEffects",
+        "wavelink.switchMonitorMix"
+    ],
+    "actionDetails": {
+        "wavelink.reconnect": {
+            "description": "Reconnect to Wave Link"
+        },
+        "wavelink.toggleInputMute": {
+            "description": "Toggle microphone mute",
+            "params": {
+                "input": {
+                    "type": "select",
+                    "description": "Microphone (blank = first Wave input)",
+                    "optionsFrom": "inputs",
+                    "allowCustom": true
+                }
+            }
+        },
+        "wavelink.setInputMute": {
+            "description": "Mute or unmute a microphone",
+            "params": {
+                "input": {
+                    "type": "select",
+                    "description": "Microphone (blank = first Wave input)",
+                    "optionsFrom": "inputs",
+                    "allowCustom": true
+                },
+                "muted": {
+                    "type": "boolean",
+                    "description": "Muted",
+                    "default": true
+                }
+            }
+        },
+        "wavelink.setInputGain": {
+            "description": "Set microphone gain",
+            "params": {
+                "input": {
+                    "type": "select",
+                    "description": "Microphone",
+                    "optionsFrom": "inputs",
+                    "allowCustom": true
+                },
+                "gain": {
+                    "type": "number",
+                    "description": "Gain (0–100)",
+                    "min": 0,
+                    "max": 100,
+                    "required": true
+                }
+            }
+        },
+        "wavelink.adjustInputGain": {
+            "description": "Nudge microphone gain",
+            "params": {
+                "input": {
+                    "type": "select",
+                    "description": "Microphone",
+                    "optionsFrom": "inputs",
+                    "allowCustom": true
+                },
+                "delta": {
+                    "type": "number",
+                    "description": "Change in percentage points (negative to lower)",
+                    "placeholder": "5",
+                    "required": true
+                }
+            }
+        },
+        "wavelink.setMicPcMix": {
+            "description": "Set the Mic/PC mix balance",
+            "params": {
+                "input": {
+                    "type": "select",
+                    "description": "Microphone",
+                    "optionsFrom": "inputs",
+                    "allowCustom": true
+                },
+                "value": {
+                    "type": "number",
+                    "description": "Balance (0 = mic, 100 = PC)",
+                    "min": 0,
+                    "max": 100,
+                    "required": true
+                }
+            }
+        },
+        "wavelink.toggleInputEffect": {
+            "description": "Toggle a microphone effect (EQ, Clipguard, ...)",
+            "params": {
+                "input": {
+                    "type": "select",
+                    "description": "Microphone",
+                    "optionsFrom": "inputs",
+                    "allowCustom": true,
+                    "required": true
+                },
+                "effect": {
+                    "type": "select",
+                    "description": "Effect",
+                    "optionsFrom": "inputEffects",
+                    "dependsOn": "input",
+                    "allowCustom": true,
+                    "required": true
+                }
+            }
+        },
+        "wavelink.toggleOutputMute": {
+            "description": "Toggle output (headphone) mute",
+            "params": {
+                "output": {
+                    "type": "select",
+                    "description": "Output (blank = main output)",
+                    "optionsFrom": "outputs",
+                    "allowCustom": true
+                }
+            }
+        },
+        "wavelink.setOutputMute": {
+            "description": "Mute or unmute an output",
+            "params": {
+                "output": {
+                    "type": "select",
+                    "description": "Output (blank = main output)",
+                    "optionsFrom": "outputs",
+                    "allowCustom": true
+                },
+                "muted": {
+                    "type": "boolean",
+                    "description": "Muted",
+                    "default": true
+                }
+            }
+        },
+        "wavelink.setOutputLevel": {
+            "description": "Set output level",
+            "params": {
+                "output": {
+                    "type": "select",
+                    "description": "Output (blank = main output)",
+                    "optionsFrom": "outputs",
+                    "allowCustom": true
+                },
+                "level": {
+                    "type": "number",
+                    "description": "Level (0–100)",
+                    "min": 0,
+                    "max": 100,
+                    "required": true
+                }
+            }
+        },
+        "wavelink.adjustOutputLevel": {
+            "description": "Nudge output level",
+            "params": {
+                "output": {
+                    "type": "select",
+                    "description": "Output (blank = main output)",
+                    "optionsFrom": "outputs",
+                    "allowCustom": true
+                },
+                "delta": {
+                    "type": "number",
+                    "description": "Change in percentage points (negative to lower)",
+                    "placeholder": "5",
+                    "required": true
+                }
+            }
+        },
+        "wavelink.setMainOutput": {
+            "description": "Select the main output device",
+            "params": {
+                "output": {
+                    "type": "select",
+                    "description": "Output",
+                    "optionsFrom": "outputs",
+                    "allowCustom": true,
+                    "required": true
+                }
+            }
+        },
+        "wavelink.toggleChannelMute": {
+            "description": "Toggle a channel's mute",
+            "params": {
+                "channel": {
+                    "type": "select",
+                    "description": "Channel",
+                    "optionsFrom": "channels",
+                    "allowCustom": true,
+                    "required": true
+                },
+                "mix": {
+                    "type": "select",
+                    "description": "Mix (blank = overall on Wave Link 3, Monitor on Wave Link 2)",
+                    "optionsFrom": "mixes",
+                    "allowCustom": true
+                }
+            }
+        },
+        "wavelink.setChannelMute": {
+            "description": "Mute or unmute a channel",
+            "params": {
+                "channel": {
+                    "type": "select",
+                    "description": "Channel",
+                    "optionsFrom": "channels",
+                    "allowCustom": true,
+                    "required": true
+                },
+                "mix": {
+                    "type": "select",
+                    "description": "Mix (blank = overall on Wave Link 3, Monitor on Wave Link 2)",
+                    "optionsFrom": "mixes",
+                    "allowCustom": true
+                },
+                "muted": {
+                    "type": "boolean",
+                    "description": "Muted",
+                    "default": true
+                }
+            }
+        },
+        "wavelink.setChannelLevel": {
+            "description": "Set a channel's level",
+            "params": {
+                "channel": {
+                    "type": "select",
+                    "description": "Channel",
+                    "optionsFrom": "channels",
+                    "allowCustom": true,
+                    "required": true
+                },
+                "mix": {
+                    "type": "select",
+                    "description": "Mix (blank = overall on Wave Link 3, Monitor on Wave Link 2)",
+                    "optionsFrom": "mixes",
+                    "allowCustom": true
+                },
+                "level": {
+                    "type": "number",
+                    "description": "Level (0–100)",
+                    "min": 0,
+                    "max": 100,
+                    "required": true
+                }
+            }
+        },
+        "wavelink.adjustChannelLevel": {
+            "description": "Nudge a channel's level",
+            "params": {
+                "channel": {
+                    "type": "select",
+                    "description": "Channel",
+                    "optionsFrom": "channels",
+                    "allowCustom": true,
+                    "required": true
+                },
+                "mix": {
+                    "type": "select",
+                    "description": "Mix (blank = overall on Wave Link 3, Monitor on Wave Link 2)",
+                    "optionsFrom": "mixes",
+                    "allowCustom": true
+                },
+                "delta": {
+                    "type": "number",
+                    "description": "Change in percentage points (negative to lower)",
+                    "placeholder": "5",
+                    "required": true
+                }
+            }
+        },
+        "wavelink.toggleChannelEffect": {
+            "description": "Toggle an effect on a channel",
+            "params": {
+                "channel": {
+                    "type": "select",
+                    "description": "Channel",
+                    "optionsFrom": "channels",
+                    "allowCustom": true,
+                    "required": true
+                },
+                "effect": {
+                    "type": "select",
+                    "description": "Effect",
+                    "optionsFrom": "channelEffects",
+                    "dependsOn": "channel",
+                    "allowCustom": true,
+                    "required": true
+                }
+            }
+        },
+        "wavelink.toggleMixMute": {
+            "description": "Toggle a mix's mute (Monitor / Stream)",
+            "params": {
+                "mix": {
+                    "type": "select",
+                    "description": "Mix",
+                    "optionsFrom": "mixes",
+                    "allowCustom": true,
+                    "required": true
+                }
+            }
+        },
+        "wavelink.setMixMute": {
+            "description": "Mute or unmute a mix",
+            "params": {
+                "mix": {
+                    "type": "select",
+                    "description": "Mix",
+                    "optionsFrom": "mixes",
+                    "allowCustom": true,
+                    "required": true
+                },
+                "muted": {
+                    "type": "boolean",
+                    "description": "Muted",
+                    "default": true
+                }
+            }
+        },
+        "wavelink.setMixLevel": {
+            "description": "Set a mix's level",
+            "params": {
+                "mix": {
+                    "type": "select",
+                    "description": "Mix",
+                    "optionsFrom": "mixes",
+                    "allowCustom": true,
+                    "required": true
+                },
+                "level": {
+                    "type": "number",
+                    "description": "Level (0–100)",
+                    "min": 0,
+                    "max": 100,
+                    "required": true
+                }
+            }
+        },
+        "wavelink.adjustMixLevel": {
+            "description": "Nudge a mix's level",
+            "params": {
+                "mix": {
+                    "type": "select",
+                    "description": "Mix",
+                    "optionsFrom": "mixes",
+                    "allowCustom": true,
+                    "required": true
+                },
+                "delta": {
+                    "type": "number",
+                    "description": "Change in percentage points (negative to lower)",
+                    "placeholder": "5",
+                    "required": true
+                }
+            }
+        },
+        "wavelink.toggleChannelEffects": {
+            "description": "Bypass or re-enable all effects on a channel (Wave Link 2)",
+            "params": {
+                "channel": {
+                    "type": "select",
+                    "description": "Channel",
+                    "optionsFrom": "channels",
+                    "allowCustom": true,
+                    "required": true
+                },
+                "mix": {
+                    "type": "select",
+                    "description": "Mix (blank = Monitor)",
+                    "optionsFrom": "mixes",
+                    "allowCustom": true
+                }
+            }
+        },
+        "wavelink.switchMonitorMix": {
+            "description": "Switch which mix you hear in your headphones (Wave Link 2)",
+            "params": {
+                "mix": {
+                    "type": "select",
+                    "description": "Mix to monitor (blank = toggle Monitor/Stream)",
+                    "optionsFrom": "mixes",
+                    "allowCustom": true
+                }
+            }
+        }
+    }
+}

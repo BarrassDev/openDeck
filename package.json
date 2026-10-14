@@ -1,18 +1,21 @@
 {
     "name": "opendeck",
-    "version": "0.2.0",
+    "version": "2.0.0",
     "description": "Open-source web-based stream deck alternative",
     "main": "dist/electron/electron/main.js",
     "scripts": {
-        "install:modules": "cd modules/obs-control && npm install --production",
+        "install:modules": "node scripts/install-modules.js",
         "build:electron": "tsc -p tsconfig.electron.json",
         "build:renderer": "vite build",
-        "build": "npm run build:electron && npm run build:renderer",
+        "build": "npm run build:electron && npm run build:mcp && npm run build:renderer",
         "dist": "npm run install:modules && npm run build && electron-builder --win",
         "dev:electron": "tsc -p tsconfig.electron.json --watch",
         "dev:renderer": "vite",
         "dev": "concurrently \"npm run dev:electron\" \"npm run dev:renderer\" \"wait-on http://localhost:5173 dist/electron/electron/main.js && cross-env OPENDECK_DEV=1 electron .\"",
-        "start": "electron ."
+        "start": "electron .",
+        "test": "node scripts/test-face.js",
+        "build:mcp": "tsc -p tsconfig.mcp.json && esbuild app/mcp/server.ts --bundle --platform=node --target=node18 --format=cjs --outfile=dist/mcp/opendeck-mcp.cjs --log-level=warning",
+        "mcp": "node dist/mcp/opendeck-mcp.cjs"
     },
     "build": {
         "appId": "com.joshuabarrass.opendeck",
@@ -29,6 +32,13 @@
             {
                 "from": "modules",
                 "to": "modules",
+                "filter": [
+                    "**/*"
+                ]
+            },
+            {
+                "from": "dist/mcp",
+                "to": "mcp",
                 "filter": [
                     "**/*"
                 ]
@@ -63,14 +73,17 @@
         "electron-builder": "^26.8.1",
         "typescript": "^5.3.3",
         "vite": "^5.0.12",
-        "wait-on": "^7.2.0"
+        "wait-on": "^7.2.0",
+        "esbuild": "^0.21.5"
     },
     "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.32.1",
         "express": "^4.18.2",
         "obs-websocket-js": "^5.0.7",
         "qrcode.react": "^4.2.0",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
-        "ws": "^8.16.0"
+        "ws": "^8.16.0",
+        "zod": "^4.6.7"
     }
 }

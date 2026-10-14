@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react"
 import { QRCodeSVG } from "qrcode.react"
-import { SocketProvider } from "./hooks/useSocket"
+import { SocketProvider, apiBase, isElectron } from "./hooks/useSocket"
 import { DeckConfigProvider } from "./hooks/useDeckConfig"
 import { ModulesProvider } from "./hooks/useModules"
+import { ModuleStateProvider } from "./hooks/useModuleState"
 import ControlPage from "./pages/ControlPage"
 import SettingsPage from "./pages/SettingsPage"
+import ModulesPage from "./pages/ModulesPage"
 import MarketplacePage from "./pages/MarketplacePage"
 
-type View = "deck" | "settings" | "marketplace"
-
-const isElectron = navigator.userAgent.includes("Electron")
+type View = "deck" | "settings" | "modules" | "marketplace"
 
 function ConnectModal({ onClose }: { onClose: () => void }) {
     const [addresses, setAddresses] = useState<string[]>([])
@@ -17,7 +17,7 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetch(`http://${window.location.hostname}:4020/api/network`)
+        fetch(`${apiBase()}/api/network`)
             .then(res => res.json())
             .then(data => {
                 setAddresses(data.addresses || [])
@@ -40,7 +40,10 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
                     <h2>Connect a Device</h2>
                     <button className="connect-close" onClick={onClose}>✕</button>
                 </div>
-                <p className="connect-hint">Scan the QR code or open the URL on any device on your local network.</p>
+                <p className="connect-hint">
+                    Scan the QR code or open the URL on any device on your local network.
+                    On a phone or tablet use <strong>Add to Home Screen</strong> to run OpenDeck as a full-screen app.
+                </p>
                 {loading ? (
                     <p className="connect-hint">Detecting network…</p>
                 ) : addresses.length === 0 ? (
@@ -71,55 +74,55 @@ export default function App() {
     const [view, setView] = useState<View>("deck")
     const [showConnect, setShowConnect] = useState(false)
 
+    const nav = (v: View, label: string) => (
+        <button
+            className={`app-nav-btn ${view === v ? "active" : ""}`}
+            onClick={() => setView(v)}
+        >
+            {label}
+        </button>
+    )
+
     return (
         <SocketProvider>
             <DeckConfigProvider>
                 <ModulesProvider>
-                <div className="app">
-                    <header className={`app-header${isElectron ? "" : " app-header-remote"}`}>
-                        <h1>OpenDeck</h1>
-                        {isElectron && (
-                            <nav className="app-nav">
-                                <button
-                                    className="app-nav-btn"
-                                    onClick={() => setShowConnect(true)}
-                                    title="Connect a device"
-                                >
-                                    📲 Connect
-                                </button>
-                                <button
-                                    className={`app-nav-btn ${view === "deck" ? "active" : ""}`}
-                                    onClick={() => setView("deck")}
-                                >
-                                    Deck
-                                </button>
-                                <button
-                                    className={`app-nav-btn ${view === "marketplace" ? "active" : ""}`}
-                                    onClick={() => setView("marketplace")}
-                                >
-                                    Plugins
-                                </button>
-                                <button
-                                    className={`app-nav-btn ${view === "settings" ? "active" : ""}`}
-                                    onClick={() => setView("settings")}
-                                >
-                                    ⚙ Settings
-                                </button>
-                            </nav>
-                        )}
-                    </header>
-                    <main>
-                        {(!isElectron || view === "deck") && <ControlPage />}
-                        {isElectron && view === "marketplace" && <MarketplacePage />}
-                        {isElectron && view === "settings" && <SettingsPage />}
-                    </main>
-                    {showConnect && <ConnectModal onClose={() => setShowConnect(false)} />}
-                    <footer className="app-footer">
-                        <a href="https://github.com/JoshuaBarrass/openDeck" target="_blank" rel="noopener noreferrer">
-                            Developed by Joshua Barrass
-                        </a>
-                    </footer>
-                </div>
+                    <ModuleStateProvider>
+                        <div className={`app${isElectron ? "" : " app-remote"}`}>
+                            {isElectron && (
+                                <header className="app-header">
+                                    <h1>OpenDeck</h1>
+                                    <nav className="app-nav">
+                                        <button
+                                            className="app-nav-btn"
+                                            onClick={() => setShowConnect(true)}
+                                            title="Connect a device"
+                                        >
+                                            📲 Connect
+                                        </button>
+                                        {nav("deck", "Deck")}
+                                        {nav("settings", "Editor")}
+                                        {nav("modules", "Modules")}
+                                        {nav("marketplace", "Plugins")}
+                                    </nav>
+                                </header>
+                            )}
+                            <main>
+                                {(!isElectron || view === "deck") && <ControlPage />}
+                                {isElectron && view === "settings" && <SettingsPage />}
+                                {isElectron && view === "modules" && <ModulesPage />}
+                                {isElectron && view === "marketplace" && <MarketplacePage />}
+                            </main>
+                            {showConnect && <ConnectModal onClose={() => setShowConnect(false)} />}
+                            {isElectron && (
+                                <footer className="app-footer">
+                                    <a href="https://github.com/BarrassDev/openDeck" target="_blank" rel="noopener noreferrer">
+                                        Developed by Joshua Barrass
+                                    </a>
+                                </footer>
+                            )}
+                        </div>
+                    </ModuleStateProvider>
                 </ModulesProvider>
             </DeckConfigProvider>
         </SocketProvider>

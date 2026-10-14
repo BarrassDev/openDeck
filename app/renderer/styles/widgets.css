@@ -1,0 +1,340 @@
+/* ========================
+   V2: Multi-cell tiles and widgets
+   ======================== */
+.sd-grid-slot.span {
+    aspect-ratio: auto;
+}
+
+.sd-grid-slot.covered {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.sd-button.static {
+    cursor: default;
+}
+
+.sd-button.static:hover {
+    background: var(--bg-button);
+}
+
+.sd-button.static.custom-bg:hover {
+    filter: none;
+}
+
+.sd-widget {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius);
+    background: var(--bg-button);
+    color: var(--text-primary);
+    box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.4),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    user-select: none;
+    touch-action: none;
+}
+
+/* ---- slider ---- */
+.sd-slider {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    cursor: pointer;
+}
+
+.sd-slider.readonly {
+    cursor: default;
+}
+
+.sd-slider-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    min-height: 1em;
+}
+
+.sd-slider-icon {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.sd-slider-label {
+    flex: 1;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.9;
+}
+
+.sd-slider-value {
+    font-family: monospace;
+    font-size: 0.75rem;
+    opacity: 0.85;
+}
+
+.sd-slider-track {
+    position: relative;
+    flex: 1;
+    min-height: 10px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.45);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.sd-slider.horizontal .sd-slider-track {
+    flex: 0 0 auto;
+    height: 14px;
+    margin: auto 0;
+}
+
+.sd-slider-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent), #8b94ff);
+    transition: width 0.08s linear, height 0.08s linear;
+}
+
+.sd-slider.vertical .sd-slider-fill {
+    top: auto;
+    right: 0;
+    background: linear-gradient(0deg, var(--accent), #8b94ff);
+}
+
+.sd-slider-thumb {
+    position: absolute;
+    top: 50%;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+    transform: translate(-50%, -50%);
+    transition: left 0.08s linear, bottom 0.08s linear;
+}
+
+.sd-slider.vertical {
+    flex-direction: column;
+}
+
+.sd-slider.vertical .sd-slider-head {
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sd-slider.vertical .sd-slider-track {
+    width: 14px;
+    margin: 0 auto;
+}
+
+.sd-slider.vertical .sd-slider-thumb {
+    top: auto;
+    left: 50%;
+    transform: translate(-50%, 50%);
+}
+
+.sd-slider.custom-bg .sd-slider-fill {
+    background: rgba(255, 255, 255, 0.85);
+}
+
+/* ---- panel ---- */
+.sd-button.widget-panel .sd-panel,
+.sd-panel {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    gap: 10px;
+    padding: 10px;
+    align-items: center;
+    text-align: left;
+}
+
+.sd-panel.pos-top {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+}
+
+.sd-panel.pos-none {
+    justify-content: center;
+}
+
+.sd-panel.pos-fill {
+    position: relative;
+    padding: 0;
+}
+
+.sd-panel-img {
+    flex: 0 0 auto;
+    height: 100%;
+    max-height: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 10px;
+    pointer-events: none;
+}
+
+.sd-panel.pos-top .sd-panel-img {
+    width: 100%;
+    height: auto;
+    flex: 1 1 0;
+    min-height: 0;
+    aspect-ratio: auto;
+}
+
+.sd-panel.pos-fill .sd-panel-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    aspect-ratio: auto;
+}
+
+.sd-panel-img.placeholder {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.sd-panel-emoji {
+    font-size: 2.4rem;
+    line-height: 1;
+    flex: 0 0 auto;
+}
+
+.sd-panel-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+}
+
+.sd-panel.pos-fill .sd-panel-lines {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 10px 12px;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+    z-index: 1;
+}
+
+.sd-panel-lines span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sd-panel-lines .primary {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.sd-panel-lines .secondary {
+    font-size: 0.72rem;
+    opacity: 0.75;
+}
+
+/* ---- info tile ---- */
+.sd-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 100%;
+    height: 100%;
+    padding: 8px;
+    text-align: center;
+}
+
+.sd-info-title {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    opacity: 0.65;
+}
+
+.sd-info-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sd-info-value.long {
+    font-size: 1.05rem;
+}
+
+.sd-info-sub {
+    font-size: 0.68rem;
+    opacity: 0.75;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.control-page.kiosk .sd-info-value {
+    font-size: clamp(1.2rem, 5.5vmin, 3rem);
+}
+
+.control-page.kiosk .sd-info-value.long {
+    font-size: clamp(0.9rem, 3.4vmin, 1.8rem);
+}
+
+.control-page.kiosk .sd-panel-lines .primary {
+    font-size: clamp(0.8rem, 2.6vmin, 1.3rem);
+}
+
+.control-page.kiosk .sd-panel-lines .secondary {
+    font-size: clamp(0.65rem, 1.9vmin, 1rem);
+}
+
+.control-page.kiosk .sd-slider-head {
+    font-size: clamp(0.65rem, 2vmin, 1rem);
+}
+
+/* ---- editor ---- */
+.preview-slider-wrap {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+.preview-slider-wrap.selected {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.widget-editor .settings-hint code {
+    font-family: monospace;
+    font-size: 0.7rem;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+.widget-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.preview-tile.widget-info .sd-info-value {
+    font-size: 1.1rem;
+}

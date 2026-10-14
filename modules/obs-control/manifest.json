@@ -1,24 +1,107 @@
 {
     "name": "obs-control",
-    "version": "0.2.0",
-    "description": "OBS Studio integration via obs-websocket-js",
+    "version": "2.1.0",
+    "apiVersion": 2,
+    "icon": "🎬",
+    "description": "OBS Studio integration — streaming, recording, scenes, audio, sources and live state via obs-websocket",
+    "config": {
+        "host": {
+            "type": "string",
+            "description": "OBS WebSocket address",
+            "placeholder": "ws://127.0.0.1:4455",
+            "default": "ws://127.0.0.1:4455"
+        },
+        "password": {
+            "type": "string",
+            "description": "OBS WebSocket password (leave blank if authentication is off)",
+            "secret": true
+        },
+        "autoConnect": {
+            "type": "select",
+            "description": "Connect at startup and keep the connection alive",
+            "options": [
+                {
+                    "value": "true",
+                    "label": "Yes"
+                },
+                {
+                    "value": "false",
+                    "label": "No"
+                }
+            ],
+            "default": "true"
+        }
+    },
+    "stateKeys": {
+        "connected": "true while connected to OBS",
+        "streaming": "true while streaming",
+        "recording": "true while recording",
+        "recordingPaused": "true while recording is paused",
+        "replayBuffer": "true while the replay buffer is active",
+        "virtualCam": "true while the virtual camera is on",
+        "studioMode": "true while studio mode is enabled",
+        "currentScene": "name of the program scene",
+        "previewScene": "name of the preview scene (studio mode)",
+        "muted.<input>": "true when the audio input is muted",
+        "volume.<input>": "input volume in dB",
+        "visible.<scene>.<source>": "last known visibility of a toggled source",
+        "filter.<source>.<filter>": "last known enabled state of a toggled filter",
+        "streamTime": "elapsed stream time (HH:MM:SS) while streaming",
+        "recordTime": "elapsed recording time (HH:MM:SS) while recording",
+        "bitrateKbps": "current stream bitrate in kbps",
+        "droppedFrames": "frames dropped by the stream output",
+        "fps": "current render FPS",
+        "cpu": "OBS CPU usage in percent"
+    },
     "actions": [
+        "obs.connect",
+        "obs.disconnect",
         "obs.startStreaming",
         "obs.stopStreaming",
+        "obs.toggleStreaming",
         "obs.startRecording",
         "obs.stopRecording",
         "obs.toggleRecording",
-        "obs.toggleMute",
-        "obs.setVolume",
+        "obs.pauseRecording",
+        "obs.resumeRecording",
+        "obs.toggleReplayBuffer",
+        "obs.saveReplayBuffer",
+        "obs.toggleVirtualCam",
+        "obs.toggleStudioMode",
         "obs.switchScene",
-        "obs.toggleSource"
+        "obs.setPreviewScene",
+        "obs.triggerTransition",
+        "obs.toggleMute",
+        "obs.mute",
+        "obs.unmute",
+        "obs.setVolume",
+        "obs.adjustVolume",
+        "obs.toggleSource",
+        "obs.setSourceVisible",
+        "obs.toggleFilter",
+        "obs.setText",
+        "obs.refreshBrowserSource",
+        "obs.mediaControl",
+        "obs.screenshot",
+        "obs.triggerHotkey",
+        "obs.setProfile",
+        "obs.setSceneCollection"
     ],
     "actionDetails": {
+        "obs.connect": {
+            "description": "Connect to OBS"
+        },
+        "obs.disconnect": {
+            "description": "Disconnect from OBS"
+        },
         "obs.startStreaming": {
             "description": "Start streaming"
         },
         "obs.stopStreaming": {
             "description": "Stop streaming"
+        },
+        "obs.toggleStreaming": {
+            "description": "Toggle streaming"
         },
         "obs.startRecording": {
             "description": "Start recording"
@@ -27,66 +110,336 @@
             "description": "Stop recording"
         },
         "obs.toggleRecording": {
-            "description": "Toggle recording on/off"
+            "description": "Toggle recording"
+        },
+        "obs.pauseRecording": {
+            "description": "Pause recording"
+        },
+        "obs.resumeRecording": {
+            "description": "Resume recording"
+        },
+        "obs.toggleReplayBuffer": {
+            "description": "Toggle the replay buffer"
+        },
+        "obs.saveReplayBuffer": {
+            "description": "Save the replay buffer"
+        },
+        "obs.toggleVirtualCam": {
+            "description": "Toggle the virtual camera"
+        },
+        "obs.toggleStudioMode": {
+            "description": "Toggle studio mode"
+        },
+        "obs.switchScene": {
+            "description": "Switch program scene",
+            "params": {
+                "scene": {
+                    "type": "select",
+                    "description": "Scene",
+                    "optionsFrom": "scenes",
+                    "allowCustom": true,
+                    "required": true
+                }
+            }
+        },
+        "obs.setPreviewScene": {
+            "description": "Set preview scene (studio mode)",
+            "params": {
+                "scene": {
+                    "type": "select",
+                    "description": "Scene",
+                    "optionsFrom": "scenes",
+                    "allowCustom": true,
+                    "required": true
+                }
+            }
+        },
+        "obs.triggerTransition": {
+            "description": "Transition preview to program (studio mode)",
+            "params": {
+                "transition": {
+                    "type": "select",
+                    "description": "Transition to use (optional)",
+                    "optionsFrom": "transitions",
+                    "allowCustom": true
+                }
+            }
         },
         "obs.toggleMute": {
-            "description": "Toggle mute on an audio source",
+            "description": "Toggle mute on an audio input",
             "params": {
                 "source": {
-                    "type": "string",
-                    "description": "Audio source name",
-                    "placeholder": "Mic/Aux",
+                    "type": "select",
+                    "description": "Audio input",
+                    "optionsFrom": "audioInputs",
+                    "allowCustom": true,
+                    "required": true
+                }
+            }
+        },
+        "obs.mute": {
+            "description": "Mute an audio input",
+            "params": {
+                "source": {
+                    "type": "select",
+                    "description": "Audio input",
+                    "optionsFrom": "audioInputs",
+                    "allowCustom": true,
+                    "required": true
+                }
+            }
+        },
+        "obs.unmute": {
+            "description": "Unmute an audio input",
+            "params": {
+                "source": {
+                    "type": "select",
+                    "description": "Audio input",
+                    "optionsFrom": "audioInputs",
+                    "allowCustom": true,
                     "required": true
                 }
             }
         },
         "obs.setVolume": {
-            "description": "Set volume on an audio source",
+            "description": "Set volume on an audio input",
             "params": {
                 "source": {
-                    "type": "string",
-                    "description": "Audio source name",
-                    "placeholder": "Mic/Aux",
+                    "type": "select",
+                    "description": "Audio input",
+                    "optionsFrom": "audioInputs",
+                    "allowCustom": true,
                     "required": true
                 },
                 "volume": {
                     "type": "number",
-                    "description": "Volume in dB (or 0.0–1.0 if useMul is on)",
+                    "description": "Volume in dB (or 0.0–1.0 multiplier if useMul is on)",
                     "placeholder": "-10",
-                    "step": 0.1,
+                    "step": 0.5,
                     "required": true
                 },
                 "useMul": {
                     "type": "boolean",
-                    "description": "Treat volume as 0.0–1.0 multiplier instead of dB",
+                    "description": "Treat volume as a 0.0–1.0 multiplier instead of dB",
                     "default": false
                 }
             }
         },
-        "obs.switchScene": {
-            "description": "Switch to a scene",
+        "obs.adjustVolume": {
+            "description": "Nudge volume on an audio input",
             "params": {
-                "scene": {
-                    "type": "string",
-                    "description": "Scene name",
-                    "placeholder": "Main Camera",
+                "source": {
+                    "type": "select",
+                    "description": "Audio input",
+                    "optionsFrom": "audioInputs",
+                    "allowCustom": true,
+                    "required": true
+                },
+                "delta": {
+                    "type": "number",
+                    "description": "Change in dB (negative to lower)",
+                    "placeholder": "3",
+                    "step": 0.5,
                     "required": true
                 }
             }
         },
         "obs.toggleSource": {
-            "description": "Toggle visibility of a source in a scene",
+            "description": "Toggle a source's visibility in a scene",
             "params": {
                 "scene": {
-                    "type": "string",
-                    "description": "Scene name containing the source",
-                    "placeholder": "Main Camera",
+                    "type": "select",
+                    "description": "Scene",
+                    "optionsFrom": "scenes",
+                    "allowCustom": true,
                     "required": true
                 },
                 "source": {
+                    "type": "select",
+                    "description": "Source",
+                    "optionsFrom": "sceneItems",
+                    "dependsOn": "scene",
+                    "allowCustom": true,
+                    "required": true
+                }
+            }
+        },
+        "obs.setSourceVisible": {
+            "description": "Show or hide a source in a scene",
+            "params": {
+                "scene": {
+                    "type": "select",
+                    "description": "Scene",
+                    "optionsFrom": "scenes",
+                    "allowCustom": true,
+                    "required": true
+                },
+                "source": {
+                    "type": "select",
+                    "description": "Source",
+                    "optionsFrom": "sceneItems",
+                    "dependsOn": "scene",
+                    "allowCustom": true,
+                    "required": true
+                },
+                "visible": {
+                    "type": "boolean",
+                    "description": "Visible",
+                    "default": true
+                }
+            }
+        },
+        "obs.toggleFilter": {
+            "description": "Toggle a filter on a source",
+            "params": {
+                "source": {
+                    "type": "select",
+                    "description": "Source",
+                    "optionsFrom": "inputs",
+                    "allowCustom": true,
+                    "required": true
+                },
+                "filter": {
+                    "type": "select",
+                    "description": "Filter",
+                    "optionsFrom": "filters",
+                    "dependsOn": "source",
+                    "allowCustom": true,
+                    "required": true
+                }
+            }
+        },
+        "obs.setText": {
+            "description": "Set the text of a text source",
+            "params": {
+                "source": {
+                    "type": "select",
+                    "description": "Text source",
+                    "optionsFrom": "inputs",
+                    "allowCustom": true,
+                    "required": true
+                },
+                "text": {
+                    "type": "textarea",
+                    "description": "Text to display",
+                    "rows": 3
+                }
+            }
+        },
+        "obs.refreshBrowserSource": {
+            "description": "Refresh a browser source",
+            "params": {
+                "source": {
+                    "type": "select",
+                    "description": "Browser source",
+                    "optionsFrom": "inputs",
+                    "allowCustom": true,
+                    "required": true
+                }
+            }
+        },
+        "obs.mediaControl": {
+            "description": "Control a media source",
+            "params": {
+                "source": {
+                    "type": "select",
+                    "description": "Media source",
+                    "optionsFrom": "inputs",
+                    "allowCustom": true,
+                    "required": true
+                },
+                "mediaAction": {
+                    "type": "select",
+                    "description": "Action",
+                    "options": [
+                        {
+                            "value": "play"
+                        },
+                        {
+                            "value": "pause"
+                        },
+                        {
+                            "value": "restart"
+                        },
+                        {
+                            "value": "stop"
+                        },
+                        {
+                            "value": "next"
+                        },
+                        {
+                            "value": "previous"
+                        }
+                    ],
+                    "default": "play"
+                }
+            }
+        },
+        "obs.screenshot": {
+            "description": "Save a screenshot of a source or the program scene",
+            "params": {
+                "path": {
                     "type": "string",
-                    "description": "Source name to toggle",
-                    "placeholder": "Webcam",
+                    "description": "Output file path",
+                    "placeholder": "C:\\Users\\me\\Pictures\\obs.png",
+                    "required": true
+                },
+                "source": {
+                    "type": "select",
+                    "description": "Source (blank = program scene)",
+                    "optionsFrom": "scenes",
+                    "allowCustom": true
+                },
+                "format": {
+                    "type": "select",
+                    "description": "Image format",
+                    "options": [
+                        {
+                            "value": "png"
+                        },
+                        {
+                            "value": "jpg"
+                        },
+                        {
+                            "value": "bmp"
+                        }
+                    ],
+                    "default": "png"
+                }
+            }
+        },
+        "obs.triggerHotkey": {
+            "description": "Trigger an OBS hotkey by name",
+            "params": {
+                "hotkey": {
+                    "type": "select",
+                    "description": "Hotkey",
+                    "optionsFrom": "hotkeys",
+                    "allowCustom": true,
+                    "required": true
+                }
+            }
+        },
+        "obs.setProfile": {
+            "description": "Switch OBS profile",
+            "params": {
+                "profile": {
+                    "type": "select",
+                    "description": "Profile",
+                    "optionsFrom": "profiles",
+                    "allowCustom": true,
+                    "required": true
+                }
+            }
+        },
+        "obs.setSceneCollection": {
+            "description": "Switch scene collection",
+            "params": {
+                "collection": {
+                    "type": "select",
+                    "description": "Scene collection",
+                    "optionsFrom": "sceneCollections",
+                    "allowCustom": true,
                     "required": true
                 }
             }

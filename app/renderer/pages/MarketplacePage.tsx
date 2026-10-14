@@ -118,7 +118,7 @@ export default function MarketplacePage() {
                     Community plugins for OpenDeck. Install from GitHub repos — each plugin runs locally on your machine.{" "}
                     <a
                         className="marketplace-link"
-                        href="https://github.com/JoshuaBarrass/opendeck-plugins"
+                        href="https://github.com/BarrassDev/opendeck-plugins"
                         target="_blank"
                         rel="noopener noreferrer"
                     >
@@ -209,7 +209,6 @@ export default function MarketplacePage() {
                                     <button
                                         className="settings-btn small"
                                         onClick={() => install(plugin)}
-                                        disabled={state === "installing"}
                                     >
                                         Install
                                     </button>

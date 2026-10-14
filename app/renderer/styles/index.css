@@ -81,11 +81,6 @@ body {
     min-height: 56px;
 }
 
-.app-header-remote {
-    background: transparent;
-    border-bottom: none;
-}
-
 .app-header h1 {
     font-size: 1.1rem;
     font-weight: 700;
@@ -1615,12 +1610,6 @@ main {
         gap: 8px;
     }
 
-    .sd-fullscreen-btn {
-        width: 100%;
-        order: -1;
-        margin-bottom: 8px;
-    }
-
     .settings-workspace {
         grid-template-columns: 1fr;
     }
@@ -1671,13 +1660,6 @@ main {
     .sd-page-bar {
         flex-wrap: wrap;
         justify-content: center;
-    }
-
-    .sd-fullscreen-btn {
-        margin-left: 0;
-        width: 100%;
-        order: -1;
-        margin-bottom: 8px;
     }
 
     .var-key,
