@@ -83,7 +83,8 @@ Runs the unit tests for the face resolver, template rendering, and config migrat
 3. Click **📲 Connect** to get a QR code / URL for other devices
 4. On a phone or tablet, open the URL and use **Add to Home Screen** — OpenDeck installs as a full-screen app
 5. Use **Editor** to design buttons, **Modules** to configure integrations, **Plugins** to install community modules
-6. Or link Claude from the **Modules** page and ask it to set everything up for you (see *Using OpenDeck with Claude*)
+6. Closing the window keeps OpenDeck running in the system tray so devices stay connected; use the tray icon to reopen, copy the device URL, or quit
+7. Or link Claude from the **Modules** page and ask it to set everything up for you (see *Using OpenDeck with Claude*)
 
 ### Mobile / tablet kiosk mode
 
