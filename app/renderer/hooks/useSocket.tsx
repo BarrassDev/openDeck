@@ -5,6 +5,7 @@ import React, {
     useRef,
     useState,
     useCallback,
+    useMemo,
     ReactNode,
 } from "react"
 import type { ClientMessage, ServerMessage } from "../../shared/types"
@@ -20,12 +21,15 @@ export function apiBase(): string {
     return `${window.location.protocol}//${window.location.host}`
 }
 
+/** Face images served by OpenDeck arrive as "/api/face-image/..." paths; point them at the server */
+export function imageSrc(src: string): string {
+    return src.startsWith("/api/") ? apiBase() + src : src
+}
+
 type MessageHandler = (message: ServerMessage) => void
 
 interface SocketContextValue {
     send: (type: ClientMessage["type"], action?: string, payload?: Record<string, unknown>) => void
-    /** Most recent message (re-renders consumers on every message; prefer subscribe) */
-    lastMessage: ServerMessage | null
     /** Register a handler for every incoming message. Returns an unsubscribe function. */
     subscribe: (handler: MessageHandler) => () => void
     connected: boolean
@@ -35,7 +39,6 @@ interface SocketContextValue {
 
 const SocketContext = createContext<SocketContextValue>({
     send: () => { },
-    lastMessage: null,
     subscribe: () => () => { },
     connected: false,
     reconnectAttempts: 0,
@@ -46,7 +49,6 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     const handlersRef = useRef<Set<MessageHandler>>(new Set())
     const [connected, setConnected] = useState(false)
     const [reconnectAttempts, setReconnectAttempts] = useState(0)
-    const [lastMessage, setLastMessage] = useState<ServerMessage | null>(null)
     const reconnectTimeout = useRef<ReturnType<typeof setTimeout>>()
     const closedByUs = useRef(false)
 
@@ -77,7 +79,6 @@ export function SocketProvider({ children }: { children: ReactNode }) {
             for (const handler of handlersRef.current) {
                 try { handler(message) } catch (err) { console.error("socket handler failed", err) }
             }
-            setLastMessage(message)
         }
 
         ws.onclose = () => {
@@ -133,8 +134,15 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         return () => { handlersRef.current.delete(handler) }
     }, [])
 
+    // Stable value: consumers (every deck tile) only re-render when the connection state changes,
+    // not on every incoming message
+    const value = useMemo(
+        () => ({ send, subscribe, connected, reconnectAttempts }),
+        [send, subscribe, connected, reconnectAttempts],
+    )
+
     return (
-        <SocketContext.Provider value={{ send, lastMessage, subscribe, connected, reconnectAttempts }}>
+        <SocketContext.Provider value={value}>
             {children}
         </SocketContext.Provider>
     )

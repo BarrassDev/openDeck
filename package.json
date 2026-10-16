@@ -1,6 +1,6 @@
 {
     "name": "opendeck",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "description": "Open-source web-based stream deck alternative",
     "main": "dist/electron/electron/main.js",
     "scripts": {

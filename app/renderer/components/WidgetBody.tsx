@@ -2,6 +2,7 @@ import React from "react"
 import type { DeckButton } from "../../shared/types"
 import { renderTemplate, type ResolvedFace, type StateMap } from "../../shared/face"
 import { ButtonFaceView } from "./ButtonFaceView"
+import { imageSrc } from "../hooks/useSocket"
 
 interface WidgetBodyProps {
     button: DeckButton
@@ -24,7 +25,7 @@ export default function WidgetBody({ button, face, state }: WidgetBodyProps) {
             <div className={`sd-panel pos-${pos}`}>
                 {pos !== "none" && (
                     image
-                        ? <img className="sd-panel-img" src={image} alt="" draggable={false} />
+                        ? <img className="sd-panel-img" src={imageSrc(image)} alt="" draggable={false} />
                         : face.icon ? <span className="sd-panel-emoji">{face.icon}</span> : <span className="sd-panel-img placeholder" />
                 )}
                 <div className="sd-panel-lines">

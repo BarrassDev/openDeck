@@ -226,7 +226,7 @@ Pages can have any grid size from 3×2 to 8×6, and can be renamed, reordered, a
 Faces can react to module state and external values:
 
 - **Templates** — `{{module.key}}` anywhere in the live image or label template, e.g. `Scene: {{obs-control.currentScene}}` or `{{wavelink.channel.Music.image}}`.
-- **Polled value** — give the button an HTTP URL (plus an optional JSON path such as `item.album.images.0.url` and an interval). The desktop app polls it and exposes the result as `{{value}}`. Point the live image template at `{{value}}` to show, for example, the current Spotify album art.
+- **Polled value** — give the button an HTTP URL (plus an optional JSON path such as `item.album.images.0.url` and an interval). The desktop app polls it and exposes the result as `{{value}}`. Point the live image template at `{{value}}` to show, for example, the current Spotify album art. Buttons that poll the same URL share one request, and large inline images (base64 data URIs such as album art) are served by the app as a small `/api/face-image/...` URL rather than pushed to every device as text.
 - **State overrides** — rules like *when `obs-control.streaming` is on, show 🔴 with label "LIVE" on a red background*. Rules can match on/off or an exact value; the first match wins.
 
 Every module documents the state keys it publishes on the **Modules** page, and the editor suggests both documented keys and whatever is live right now.

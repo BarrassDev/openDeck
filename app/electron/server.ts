@@ -208,6 +208,18 @@ export function startServer(port: number) {
         res.json(stateStore.snapshot())
     })
 
+    // API: images polled for button faces (album art etc.); the URL carries a content hash so it caches forever
+    expressApp.get("/api/face-image/:buttonId", (req, res) => {
+        const image = facePoller.getImage(req.params.buttonId)
+        if (!image) {
+            res.status(404).end()
+            return
+        }
+        res.setHeader("Content-Type", image.contentType)
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable")
+        res.send(image.bytes)
+    })
+
     // API: proxy the community plugin registry (avoids CORS from renderer)
     expressApp.get("/api/marketplace", async (_req, res) => {
         try {

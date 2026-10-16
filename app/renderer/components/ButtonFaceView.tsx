@@ -1,6 +1,7 @@
 import React, { useMemo } from "react"
 import { resolveFace, type ResolvedFace, type StateMap } from "../../shared/face"
 import type { DeckButton as DeckButtonType } from "../../shared/types"
+import { imageSrc } from "../hooks/useSocket"
 
 /** Shared face rendering, used by the live deck, widgets and the settings preview */
 export function ButtonFaceView({ face }: { face: ResolvedFace }) {
@@ -8,7 +9,7 @@ export function ButtonFaceView({ face }: { face: ResolvedFace }) {
     return (
         <div className={`sd-button-face pos-${face.labelPosition} size-${face.fontSize}`}>
             {image ? (
-                <img className="sd-button-img" src={face.icon} alt={face.label} draggable={false} />
+                <img className="sd-button-img" src={imageSrc(face.icon)} alt={face.label} draggable={false} />
             ) : face.icon ? (
                 <span className="sd-button-icon">{face.icon}</span>
             ) : null}
